@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  redmine:
+    image: redmine:5.1
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../:/usr/src/redmine/plugins/your_redmine_plugin
+

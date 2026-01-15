@@ -1,0 +1,55 @@
+name: Redmine Plugin CI/CD
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build plugin ZIP
+        run: |
+          chmod +x ci/build_zip.sh
+          ci/build_zip.sh
+
+      - name: Test plugin with Redmine
+        run: |
+          docker compose -f ci/docker-compose.yml up -d
+          sleep 60
+          docker compose -f ci/docker-compose.yml logs
+
+      - name: Save ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: "*.zip"
+
+  release:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment: production-release
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download ZIP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-zip
+
+      - name: Upload ZIP to WordPress
+        env:
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_PASS: ${{ secrets.WP_PASS }}
+          WP_URL: ${{ secrets.WP_URL }}
+        run: |
+          chmod +x ci/upload_to_wp.sh
+          ci/upload_to_wp.sh
+
